@@ -6,9 +6,9 @@ fn parse_(filename string) ?PngFile {
 	file := os.read_file(filename) or {
 		return none
 	}
-	mut file_bytes := []byte{len: file.len}
+	mut file_bytes := []u8{len: file.len}
 	for i, b in file {
-		file_bytes[i] = byte(b)
+		file_bytes[i] = u8(b)
 	}
 	read_signature(file_bytes[ .. 8]) or {
 		return none
@@ -50,7 +50,7 @@ fn parse_(filename string) ?PngFile {
 	}
 }
 
-fn read_signature(signature []byte) ?bool {
+fn read_signature(signature []u8) ?bool {
 	is_good := signature == png_signature
 	if !is_good {
 		println('Wrong PNG signature')
@@ -59,7 +59,7 @@ fn read_signature(signature []byte) ?bool {
 	return true
 }
 
-fn read_ihdr(chunk_data []byte) IHDR {
+fn read_ihdr(chunk_data []u8) IHDR {
 	return IHDR{
 		width: byte_to_int(chunk_data[ .. 4])
 		height: byte_to_int(chunk_data[4 .. 8])
@@ -135,7 +135,7 @@ fn read_bytes(mut png InternalPngFile) []Pixel {
 				3 { filt + (byte_a(r, c, png) + byte_b(r, c, png)) / 2 }
 				else { filt + paeth(byte_a(r, c, png), byte_b(r, c, png), byte_c(r, c, png)) }
 			}
-			png.unfiltered_bytes << byte(new_byte & 0xff)
+			png.unfiltered_bytes << u8(new_byte & 0xff)
 		}
 	}
 	mut res := []Pixel{}
@@ -171,7 +171,7 @@ fn read_bytes(mut png InternalPngFile) []Pixel {
 	return res
 }
 
-fn read_chunks(file []byte) InternalPngFile {
+fn read_chunks(file []u8) InternalPngFile {
 	mut index := 0
 	mut png := InternalPngFile{}
 	for index < file.len {
@@ -205,7 +205,7 @@ fn read_chunks(file []byte) InternalPngFile {
 	return png
 }
 
-fn decompress_idat(png InternalPngFile) []byte {
+fn decompress_idat(png InternalPngFile) []u8 {
 	out_len := (png.ihdr.width * png.ihdr.height) * png.channels + png.ihdr.height
 	out := unsafe {malloc(out_len)}
 	infstream := C.z_stream_s{
@@ -220,10 +220,10 @@ fn decompress_idat(png InternalPngFile) []byte {
 	C.inflateInit(&infstream)
 	C.inflate(&infstream, 0)
 	C.inflateEnd(&infstream)
-	mut out_bytes := []byte{len: out_len}
+	mut out_bytes := []u8{len: out_len}
 	for i in 0 .. (out_len) {
 		unsafe {
-			out_bytes[i] = byte(out[i])
+			out_bytes[i] = u8(out[i])
 		}
 	}
 	return out_bytes
